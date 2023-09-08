@@ -1,72 +1,118 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.SceneManagement;
+﻿using UnityEngine;
+using UnityEngine.Android;
 
 public class MoviemntacaoZumbi : MonoBehaviour
 {
 
     public GameObject Jogador;
-    public float velocidade = 5;
+    public float velocidade;
     public int Vida;
     public int Pontos;
     public AudioClip SomMorte;
-    
 
+    private AnimacaoPersonagem animaPersonagem;
     private Rigidbody rigidbodyZumbi;
-    private Animator animatorZumbi;
+    private Vector3 direcao;
+
+    //private float contadorVagar;
+    //private float tempoEntrePosicoesAleatorias = 4;
+    private Vector3 PosicaoAleatoria;
+    private float distancia;
+    //private int vagarParado = 0;
+    //private Vector3 distanciaAnterior;
+
+
 
     // Start is called before the first frame update
     void Start()
     {
         Jogador = GameObject.FindWithTag("Joogador");
-        
+        animaPersonagem = GetComponent<AnimacaoPersonagem>();
 
         rigidbodyZumbi = GetComponent<Rigidbody>();
-        animatorZumbi = GetComponent<Animator>();
+        // animatorZumbi = GetComponent<Animator>();
 
-        int geraTipoZumbi = Random.Range(1, 28);
-        transform.GetChild(geraTipoZumbi).gameObject.SetActive(true);
+        ConfigurandoZumbiAleatorio();
 
         Vida = Random.Range(10, 60);
         Pontos = Vida;
 
+        velocidade = Random.Range(1, 10);
+        PosicaoAleatoria = BuscaPosicaoAleatoria();
+
     }
 
-    private void Awake()
+    private void ConfigurandoZumbiAleatorio()
     {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-
+        int geraTipoZumbi = Random.Range(1, 28);
+        transform.GetChild(geraTipoZumbi).gameObject.SetActive(true);
     }
 
     private void FixedUpdate()
     {
 
 
-        float distrancia = Vector3.Distance(transform.position, Jogador.transform.position);
-        Vector3 direcao = Jogador.transform.position - transform.position;
+        distancia = Vector3.Distance(transform.position, Jogador.transform.position);
 
-        Quaternion novaRotacao = Quaternion.LookRotation(direcao);
-        rigidbodyZumbi.MoveRotation(novaRotacao);
 
-        if (distrancia > 2.5)
+
+        if (distancia >= 15)
         {
+             Vagar();
+
+        }
+        else if (distancia > 2.5)
+        {
+
+            direcao = Jogador.transform.position - transform.position;
+
+            Quaternion novaRotacao = Quaternion.LookRotation(direcao);
+            rigidbodyZumbi.MoveRotation(novaRotacao);
+
             rigidbodyZumbi.MovePosition(rigidbodyZumbi.position + (direcao.normalized * velocidade * Time.deltaTime));
-            animatorZumbi.SetBool("Atacando", false);
+            // animatorZumbi.SetBool("Atacando", false);
+            animaPersonagem.Atacar(false);
         }
         else
         {
-            animatorZumbi.SetBool("Atacando", true);
-
+            Quaternion novaRotacao = Quaternion.LookRotation(direcao);
+            rigidbodyZumbi.MoveRotation(novaRotacao);
+            //animatorZumbi.SetBool("Atacando", true);
+            animaPersonagem.Atacar(true);
         }
 
     }
 
+    private void Vagar()
+    {
+        direcao = PosicaoAleatoria - transform.position;
+
+        Quaternion novaRotacao = Quaternion.LookRotation(direcao);
+        rigidbodyZumbi.MoveRotation(novaRotacao);
+
+
+        if (Vector3.Distance(transform.position, PosicaoAleatoria) > 0.05)
+        {
+            rigidbodyZumbi.MovePosition(rigidbodyZumbi.position + (direcao.normalized * velocidade * Time.deltaTime));
+            animaPersonagem.Atacar(false);
+
+        }
+        else
+        {
+            PosicaoAleatoria = BuscaPosicaoAleatoria();
+        }
+
+
+    }
+
+    private Vector3 BuscaPosicaoAleatoria()
+    {
+        Vector3 posicao = Random.insideUnitSphere * 5;
+        posicao += transform.position;
+        posicao.y = transform.position.y;
+
+        return posicao;
+    }
 
     public void TomaDano(int dano)
     {
@@ -86,7 +132,7 @@ public class MoviemntacaoZumbi : MonoBehaviour
 
 
 
-    Destroy(this.gameObject);
+            Destroy(this.gameObject);
         }
     }
 

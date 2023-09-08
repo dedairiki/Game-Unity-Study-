@@ -1,23 +1,19 @@
-using System.Collections;
-using System.Collections.Generic;
-using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class MovimentacaoPersonagem : MonoBehaviour
 {
 
-    public float velocidade = 5;
+
     Vector3 direcao;
     public LayerMask MascaraChao;
     public GameObject gameOver;
-    public int Vida = 100;
     public ControlaInterface scriptControlaInterface;
-
+    public AudioClip SomDeDano;
+    public Status statusJogador;
     private Rigidbody rigidBodyPersonagem;
     private Animator AnimatorPersonagem;
-    public AudioClip SomDeDano;
-
+    private MovimentaJogador meuMovimentaJogador;
 
     // Start is called before the first frame update
     void Start()
@@ -25,6 +21,9 @@ public class MovimentacaoPersonagem : MonoBehaviour
         Time.timeScale = 1;
         rigidBodyPersonagem = GetComponent<Rigidbody>();
         AnimatorPersonagem = GetComponent<Animator>();
+        meuMovimentaJogador = GetComponent<MovimentaJogador>();
+        statusJogador = GetComponent<Status>();
+        statusJogador.Vida = 100;
     }
 
     // Update is called once per frame
@@ -37,11 +36,17 @@ public class MovimentacaoPersonagem : MonoBehaviour
 
     private void FixedUpdate()
     {
-        rigidBodyPersonagem.MovePosition(rigidBodyPersonagem.position + (direcao * Time.deltaTime * velocidade));
-
+        rigidBodyPersonagem.MovePosition(rigidBodyPersonagem.position + (direcao * Time.deltaTime * statusJogador.Velocidade));
 
         //Rotacionar Personagem de acordo com o mouse
-        RotacionaPersonagem();
+        meuMovimentaJogador.RotacionarJogador(MascaraChao);
+
+    }
+
+    public void Rotacionar(Vector3 direcao)
+    {
+        Quaternion novaRotacao = Quaternion.LookRotation(direcao);
+        rigidBodyPersonagem.MoveRotation(novaRotacao);
 
     }
 
@@ -54,6 +59,9 @@ public class MovimentacaoPersonagem : MonoBehaviour
 
     private void AlterandoAnimacaoPersonagem()
     {
+        //meuMovimentaJogador.AlteraAnimacaoAndarJogador(direcao);
+
+
         if (direcao != Vector3.zero)
         {
             AnimatorPersonagem.SetBool("Movendo", true);
@@ -64,54 +72,38 @@ public class MovimentacaoPersonagem : MonoBehaviour
             AnimatorPersonagem.SetBool("Movendo", false);
         }
 
-        if (!EstaVivo())
-        {
-            if (Input.GetButtonDown("Fire1"))
-            {
-                SceneManager.LoadScene("SampleScene");
+        //if (!EstaVivo())
+        //{
+        //    if (Input.GetButtonDown("Fire1"))
+        //    {
+        //        SceneManager.LoadScene("SampleScene");
 
-            }
-        }
-    }
-
-    private void RotacionaPersonagem()
-    {
-        Ray raio = Camera.main.ScreenPointToRay(Input.mousePosition);
-
-        //Exibe uma linha da camera para onde o mouse esta apontando. 
-        Debug.DrawRay(raio.origin, raio.direction * 100, Color.red);
-
-        RaycastHit impacto;
-
-        if (Physics.Raycast(raio, out impacto, 100, MascaraChao))
-        {
-            Vector3 posicaoMiraJogador = impacto.point - transform.position;
-
-            posicaoMiraJogador.y = transform.position.y;
-
-            Quaternion novaRotacao = Quaternion.LookRotation(posicaoMiraJogador);
-
-            rigidBodyPersonagem.MoveRotation(novaRotacao);
-
-        }
+        //    }
+        //}
     }
 
     public void TomarDano(int dano)
     {
         ControlaAudio.instancia.PlayOneShot(SomDeDano);
-        Vida -= dano;
+        statusJogador.Vida -= dano;
         scriptControlaInterface.AtualizaVidaJogador();
 
         if (!EstaVivo())
         {
-            Time.timeScale = 0f;
-            gameOver.SetActive(true);
+            Morrer();
         }
 
     }
 
+    private void Morrer()
+    {
+        Time.timeScale = 0f;
+        scriptControlaInterface.GameOver();
+        //gameOver.SetActive(true);
+    }
+
     private bool EstaVivo()
     {
-        return Vida > 0;
+        return statusJogador.Vida > 0;
     }
 }
